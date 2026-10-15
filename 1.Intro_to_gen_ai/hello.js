@@ -3,7 +3,6 @@ import dotenv from "dotenv"
 
 dotenv.config()
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
- 
 
 const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
 
@@ -16,8 +15,7 @@ async function main() {
 }
 
 try {
-    main();
-    
+  await main();
 } catch (error) {
-    console.log(error)
+  console.error(error);
 }

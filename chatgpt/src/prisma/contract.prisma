@@ -1,0 +1,65 @@
+// use prisma-8
+
+model User {
+  id        String      @id @unique @default(uuid()) 
+  clerkId  String @unique
+  email     String   @unique
+   name      String?
+   imgUrl String ? 
+   createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  Conversations Conversation[]
+}
+
+model Conversation { 
+  id String @id @unique @default(uuid())
+  userId String   
+  title String @default("New Chat")
+
+  model String ? 
+  systemPrompt String? //e.g.
+
+  isPinned Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAtString()
+  lastMessageAt DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+  @@index([userId, lastMessageAt])
+  @@index([userId, isPinned, lastMessageAt])
+  
+}
+
+enum MessageRole {
+  USER 
+  ASSISTANT
+  SYSTEM
+  TOOL 
+
+}
+
+enum MessageStatus {
+  PENDING
+  COMPLETE
+    ERROR
+}
+ 
+ model Message { 
+  id String @id @default(uuid())
+  conversationId String 
+  role MessageRole
+  status MessageStatus @default(COMPLETE)
+  content text()  
+  parts Json?
+  metaData Json?
+
+  createdAt DateTime @default(now())
+  updatedAt temporal.updatedAtString()
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+ 
+  @@index([conversationId, createdAt])
+}

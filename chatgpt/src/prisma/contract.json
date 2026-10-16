@@ -66,7 +66,7 @@
               "createdAt": {
                 "nullable": false,
                 "type": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "kind": "scalar"
                 }
               },
@@ -94,7 +94,7 @@
               "lastMessageAt": {
                 "nullable": false,
                 "type": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "kind": "scalar"
                 }
               },
@@ -223,7 +223,7 @@
               "createdAt": {
                 "nullable": false,
                 "type": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "kind": "scalar"
                 }
               },
@@ -443,7 +443,7 @@
             "Conversation": {
               "columns": {
                 "createdAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "dataType": "pg/timestamptz",
                   "default": {
                     "expression": "now()",
@@ -475,7 +475,7 @@
                   "nullable": false
                 },
                 "lastMessageAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "dataType": "pg/timestamptz",
                   "default": {
                     "expression": "now()",
@@ -602,7 +602,7 @@
                   "nullable": false
                 },
                 "createdAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "dataType": "pg/timestamptz",
                   "default": {
                     "expression": "now()",
@@ -797,7 +797,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "dfeb7218035a88b17920aa82410ad1d2bb7f01a45cf4b789197a4d2dcc33631f"
+    "storageHash": "af28d3f669d35c55cc007d5d970d9f3218b2f588fe85d98c81275a696d5b08d7"
   },
   "execution": {
     "executionHash": "dcb2f7ae096237ce293afc4d7d1e15fca36d29df436a8c4328f8c7dcc88ca515",

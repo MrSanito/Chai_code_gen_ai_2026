@@ -29,6 +29,10 @@ desktop.ini
 .vscode/
 !.vscode/extensions.json
 .idea/
+.agents/
+.claude/
+.cursor/
+.devin/
 *.suo
 *.ntvs*
 *.njsproj

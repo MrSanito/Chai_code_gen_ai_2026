@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'dfeb7218035a88b17920aa82410ad1d2bb7f01a45cf4b789197a4d2dcc33631f'>;
+  StorageHashBase<'af28d3f669d35c55cc007d5d970d9f3218b2f588fe85d98c81275a696d5b08d7'>;
 export type ExecutionHash =
   ExecutionHashBase<'dcb2f7ae096237ce293afc4d7d1e15fca36d29df436a8c4328f8c7dcc88ca515'>;
 export type ProfileHash =
@@ -235,11 +235,11 @@ type DefaultLiteralValue<CodecId extends string, Encoded> = CodecId extends keyo
 export type FieldOutputTypes = {
   readonly public: {
     readonly Conversation: {
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly isArchived: CodecTypes['pg/bool@1']['output'];
       readonly isPinned: CodecTypes['pg/bool@1']['output'];
-      readonly lastMessageAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly lastMessageAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly model: CodecTypes['pg/text@1']['output'] | null;
       readonly systemPrompt: CodecTypes['pg/text@1']['output'] | null;
       readonly title: CodecTypes['pg/text@1']['output'];
@@ -249,7 +249,7 @@ export type FieldOutputTypes = {
     readonly Message: {
       readonly content: CodecTypes['pg/text@1']['output'];
       readonly conversationId: CodecTypes['pg/text@1']['output'];
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly metaData: CodecTypes['pg/json@1']['output'] | null;
       readonly parts: CodecTypes['pg/json@1']['output'] | null;
@@ -271,11 +271,11 @@ export type FieldOutputTypes = {
 export type FieldInputTypes = {
   readonly public: {
     readonly Conversation: {
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly isArchived: CodecTypes['pg/bool@1']['input'];
       readonly isPinned: CodecTypes['pg/bool@1']['input'];
-      readonly lastMessageAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly lastMessageAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly model: CodecTypes['pg/text@1']['input'] | null;
       readonly systemPrompt: CodecTypes['pg/text@1']['input'] | null;
       readonly title: CodecTypes['pg/text@1']['input'];
@@ -285,7 +285,7 @@ export type FieldInputTypes = {
     readonly Message: {
       readonly content: CodecTypes['pg/text@1']['input'];
       readonly conversationId: CodecTypes['pg/text@1']['input'];
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly metaData: CodecTypes['pg/json@1']['input'] | null;
       readonly parts: CodecTypes['pg/json@1']['input'] | null;
@@ -307,11 +307,11 @@ export type FieldInputTypes = {
 export type StorageColumnTypes = {
   readonly public: {
     readonly Conversation: {
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly isArchived: CodecTypes['pg/bool@1']['output'];
       readonly isPinned: CodecTypes['pg/bool@1']['output'];
-      readonly lastMessageAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly lastMessageAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly model: CodecTypes['pg/text@1']['output'] | null;
       readonly systemPrompt: CodecTypes['pg/text@1']['output'] | null;
       readonly title: CodecTypes['pg/text@1']['output'];
@@ -321,7 +321,7 @@ export type StorageColumnTypes = {
     readonly Message: {
       readonly content: CodecTypes['pg/text@1']['output'];
       readonly conversationId: CodecTypes['pg/text@1']['output'];
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly metaData: CodecTypes['pg/json@1']['output'] | null;
       readonly parts: CodecTypes['pg/json@1']['output'] | null;
@@ -343,11 +343,11 @@ export type StorageColumnTypes = {
 export type StorageColumnInputTypes = {
   readonly public: {
     readonly Conversation: {
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly isArchived: CodecTypes['pg/bool@1']['input'];
       readonly isPinned: CodecTypes['pg/bool@1']['input'];
-      readonly lastMessageAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly lastMessageAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly model: CodecTypes['pg/text@1']['input'] | null;
       readonly systemPrompt: CodecTypes['pg/text@1']['input'] | null;
       readonly title: CodecTypes['pg/text@1']['input'];
@@ -357,7 +357,7 @@ export type StorageColumnInputTypes = {
     readonly Message: {
       readonly content: CodecTypes['pg/text@1']['input'];
       readonly conversationId: CodecTypes['pg/text@1']['input'];
-      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly metaData: CodecTypes['pg/json@1']['input'] | null;
       readonly parts: CodecTypes['pg/json@1']['input'] | null;
@@ -379,11 +379,11 @@ export type StorageColumnInputTypes = {
 
 export namespace Models {
   export type public_Conversation = {
-    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
     id: CodecTypes['pg/text@1']['output'];
     isArchived: CodecTypes['pg/bool@1']['output'];
     isPinned: CodecTypes['pg/bool@1']['output'];
-    lastMessageAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    lastMessageAt: CodecTypes['pg/timestamptz-string@1']['output'];
     model: CodecTypes['pg/text@1']['output'] | null;
     systemPrompt: CodecTypes['pg/text@1']['output'] | null;
     title: CodecTypes['pg/text@1']['output'];
@@ -396,7 +396,7 @@ export namespace Models {
   export type public_Message = {
     content: CodecTypes['pg/text@1']['output'];
     conversationId: CodecTypes['pg/text@1']['output'];
-    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
     id: CodecTypes['pg/text@1']['output'];
     metaData: CodecTypes['pg/json@1']['output'] | null;
     parts: CodecTypes['pg/json@1']['output'] | null;
@@ -449,7 +449,7 @@ type ContractBase = Omit<
               columns: {
                 readonly createdAt: {
                   readonly dataType: 'pg/timestamptz';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                   readonly many: false;
@@ -482,7 +482,7 @@ type ContractBase = Omit<
                 };
                 readonly lastMessageAt: {
                   readonly dataType: 'pg/timestamptz';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                   readonly many: false;
@@ -575,7 +575,7 @@ type ContractBase = Omit<
                 };
                 readonly createdAt: {
                   readonly dataType: 'pg/timestamptz';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                   readonly many: false;
@@ -745,7 +745,7 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: {
                   readonly kind: 'scalar';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly codecId: 'pg/timestamptz-string@1';
                 };
               };
               readonly id: {
@@ -764,7 +764,7 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: {
                   readonly kind: 'scalar';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly codecId: 'pg/timestamptz-string@1';
                 };
               };
               readonly model: {
@@ -844,7 +844,7 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: {
                   readonly kind: 'scalar';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly codecId: 'pg/timestamptz-string@1';
                 };
               };
               readonly id: {

@@ -12,10 +12,19 @@ function createDb() {
 
 const globalForDb = globalThis as unknown as {
   db?: ReturnType<typeof createDb>;
+  contractHash?: string;
 };
 
-export const db = globalForDb.db ?? createDb();
+const currentHash = (contractJson as any).storageHash ?? (contractJson as any).profileHash;
 
-if (process.env.NODE_ENV !== "production") globalForDb.db = db;
+export const db =
+  globalForDb.db && globalForDb.contractHash === currentHash
+    ? globalForDb.db
+    : createDb();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.db = db;
+  globalForDb.contractHash = currentHash;
+}
 
 export default db;

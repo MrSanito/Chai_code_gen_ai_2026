@@ -23,9 +23,9 @@ model Conversation {
   isPinned Boolean @default(false)
   isArchived Boolean @default(false)
 
-  createdAt DateTime @default(now())
+  createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
-  lastMessageAt DateTime @default(now())
+  lastMessageAt TimestamptzString @default(now())
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]
@@ -57,7 +57,7 @@ enum MessageStatus {
   parts Json?
   metaData Json?
 
-  createdAt DateTime @default(now())
+  createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
  

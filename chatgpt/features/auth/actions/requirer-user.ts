@@ -1,35 +1,26 @@
-"use server"
+"use server";
+
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/src/prisma/db";
 
+export async function requireUser() {
+  const { userId } = await auth.protect();
 
-export async function requireUser (){
+  if (!userId) {
+    throw new Error("Unauthenticated");
+  }
 
-    try {
-        
-   
-    const {userId} = await auth.protect()
+  const user = await db.orm.public.User.where({
+    clerkId: userId,
+  }).first();
 
-    if (!userId)
-    { 
-        throw new Error ("Unauthenticated")
-    }
-    const user = await db.orm.public.User.where({
-      clerkId: userId,
-    }).first();
-
-    if (!user) {
-      throw new Error("User not found in the DB");
-    }
-
-    return {
-      user,
-      userId: user.id,
-      clerkId: userId,
-    };
-  } catch (error) {
+  if (!user) {
     throw new Error("User not found in the DB");
   }
 
+  return {
+    user,
+    userId: user.id,
+    clerkId: userId,
+  };
 }
-

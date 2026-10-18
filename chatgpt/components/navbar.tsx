@@ -36,6 +36,12 @@ export default function Navbar() {
     setMobileOpen(false);
   }, [pathname]);
 
+  // Hide Navbar on chat/conversation pages so the sidebar handles layout
+  const isChatRoute = pathname === '/' || pathname?.startsWith('/c');
+  if (isChatRoute) {
+    return null;
+  }
+
   return (
     <header
       className={cn(

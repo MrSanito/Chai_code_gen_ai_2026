@@ -14,6 +14,12 @@ export async function listConversations() {
 
 export type ConversationListItem = Awaited<ReturnType<typeof listConversations>>[number];
 
+
+export async function getConversation(conversationId: string) {
+    const user = await requireUser();
+    return assertOwnsConversation(conversationId, user.userId)
+}
+
 export async function createConversation (title = `New Chat`) { 
     const user = await requireUser()
 

@@ -45,13 +45,27 @@ export default function RegisterPage() {
     setCustomError('')
     setLoading(true)
 
-    // 1. Try Clerk Google OAuth via sso()
+    // 1. Try Clerk Google OAuth via authenticateWithRedirect
+    if (signUp && typeof (signUp as any).authenticateWithRedirect === 'function') {
+      try {
+        await (signUp as any).authenticateWithRedirect({
+          strategy: 'oauth_google',
+          redirectUrl: '/sso-callback',
+          redirectUrlComplete: '/',
+        })
+        return
+      } catch (clerkErr: any) {
+        console.warn('Clerk Google authenticateWithRedirect failed, trying fallback:', clerkErr)
+      }
+    }
+
+    // 2. Try Clerk Google OAuth via sso()
     if (signUp && typeof signUp.sso === 'function') {
       try {
         const { error } = await signUp.sso({
           strategy: 'oauth_google',
           redirectUrl: '/sso-callback',
-          redirectCallbackUrl: '/sso-callback',
+          redirectCallbackUrl: '/',
         })
         if (error) {
           console.error('[Clerk Google Sign-Up Error]:', error)

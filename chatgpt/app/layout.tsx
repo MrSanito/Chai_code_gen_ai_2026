@@ -38,7 +38,12 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <QueryProvider>
-          <ClerkProvider>
+          <ClerkProvider
+            signInUrl="/login"
+            signUpUrl="/register"
+            signInFallbackRedirectUrl="/"
+            signUpFallbackRedirectUrl="/"
+          >
             <ThemeProvider
               attribute="class"
               defaultTheme="system"

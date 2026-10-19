@@ -25,6 +25,26 @@ export async function startNewChat() {
     redirect("/landing");
   }
 
+  // Check if user already has an existing empty "New Chat"
+  const existingConvs = await db.orm.public.Conversation.where({
+    userId: user.id,
+    isArchived: false,
+    isPinned: false,
+  })
+    .orderBy((c) => c.lastMessageAt.desc())
+    .all();
+
+  for (const conv of existingConvs) {
+    if (conv.title.trim().toLowerCase() === "new chat") {
+      const messages = await db.orm.public.Message.where({
+        conversationId: conv.id,
+      }).all();
+      if (messages.length === 0) {
+        redirect(`/c/${conv.id}`);
+      }
+    }
+  }
+
   const conversation = await db.orm.public.Conversation.create({
     userId: user.id,
     title: "New Chat",

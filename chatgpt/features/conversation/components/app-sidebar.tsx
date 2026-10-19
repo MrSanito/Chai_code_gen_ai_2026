@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Loader2,
+  Moon,
   MoreHorizontalIcon,
   PencilIcon,
   PinIcon,
   PinOffIcon,
   PlusIcon,
+  Sun,
   Trash2Icon,
 } from "lucide-react";
 import CustomUserButton from "@/components/ui/customUserButton";
 import { useTheme } from "next-themes";
 
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useConversations,
+  useCreateConversation,
   useDeleteConversation,
   useUpdateConversation,
 } from "@/features/conversation/hooks/use-conversation";
@@ -48,19 +51,21 @@ type Conversation = NonNullable<
 >[number];
 
 /**
- * Main application sidebar — logo, new chat, conversation list, theme toggle, and account.
+ * Main application sidebar — logo, new chat, conversation list with pinned/recent grouping,
+ * theme toggle, and account menu.
  */
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: conversations, isLoading } = useConversations();
+  const createConversation = useCreateConversation();
 
-  
-// Get the active conversation id from the pathname (e.g. /c/123)
-// pathname.split("/")[2] is the third part of the pathname (the conversation id)
-//  firstparam = / , secondparam = c , thirdparam = 123
+  // Extract active conversation id from /c/[id]
   const activeId = pathname.startsWith("/c/")
     ? pathname.split("/")[2]
     : undefined;
+
+  const pinned = conversations?.filter((c) => c.isPinned) ?? [];
+  const recent = conversations?.filter((c) => !c.isPinned) ?? [];
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -70,17 +75,26 @@ export function AppSidebar() {
             <SidebarMenuButton
               size="lg"
               className="font-semibold tracking-tight"
-              render={<Link href="/" />}
+              render={<Link href="/" prefetch={false} />}
             >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm text-primary-foreground">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-xs">
                 C
               </span>
-              <span>ChaiGPT</span>
+              <span className="font-bold text-base">ChaiGPT</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="New chat" render={<Link href="/" />}>
-              <PlusIcon />
+            <SidebarMenuButton
+              tooltip="New chat"
+              onClick={() => createConversation.mutate(undefined)}
+              disabled={createConversation.isPending}
+              className="font-medium"
+            >
+              {createConversation.isPending ? (
+                <Loader2 className="size-4 animate-spin shrink-0" />
+              ) : (
+                <PlusIcon className="size-4 shrink-0" />
+              )}
               <span>New chat</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -88,18 +102,67 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Chats</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <ChatList
-                conversations={conversations}
-                isLoading={isLoading}
-                activeId={activeId}
-              />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isLoading ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Chats</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <SidebarMenuItem key={index}>
+                    <Skeleton className="h-8 w-full rounded-md" />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : !conversations?.length ? (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <p className="px-3 py-2 text-xs text-muted-foreground">No chats yet</p>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : (
+          <>
+            {/* Pinned section (only shown if pinned chats exist) */}
+            {pinned.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <PinIcon className="size-3" />
+                  <span>Pinned</span>
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {pinned.map((conversation) => (
+                      <ChatItem
+                        key={conversation.id}
+                        conversation={conversation}
+                        isActive={activeId === conversation.id}
+                      />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Recent section */}
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground">
+                {pinned.length > 0 ? "Recent" : "Chats"}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {recent.map((conversation) => (
+                    <ChatItem
+                      key={conversation.id}
+                      conversation={conversation}
+                      isActive={activeId === conversation.id}
+                    />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter>
@@ -107,47 +170,6 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  );
-}
-
-/** Renders the conversation list with loading skeletons or an empty-state message. */
-function ChatList({
-  conversations,
-  isLoading,
-  activeId,
-}: {
-  conversations: Conversation[] | undefined;
-  isLoading: boolean;
-  activeId: string | undefined;
-}) {
-  if (isLoading) {
-    return (
-      <>
-        {Array.from({ length: 5 }).map((_, index) => (
-          <SidebarMenuItem key={index}>
-            <Skeleton className="h-8 w-full" />
-          </SidebarMenuItem>
-        ))}
-      </>
-    );
-  }
-
-  if (!conversations?.length) {
-    return (
-      <p className="px-2 py-1.5 text-xs text-muted-foreground">No chats yet</p>
-    );
-  }
-
-  return (
-    <>
-      {conversations.map((conversation) => (
-        <ChatItem
-          key={conversation.id}
-          conversation={conversation}
-          isActive={activeId === conversation.id}
-        />
-      ))}
-    </>
   );
 }
 
@@ -178,8 +200,14 @@ function ChatItem({
         isActive={isActive}
         tooltip={conversation.title}
         render={<Link href={`/c/${conversation.id}`} />}
-        className={cn(isActive && "font-medium")}
+        className={cn(
+          "group/chat-item relative pr-7",
+          isActive && "font-medium bg-sidebar-accent text-sidebar-accent-foreground"
+        )}
       >
+        {conversation.isPinned && (
+          <PinIcon className="size-3 text-muted-foreground/70 shrink-0 mr-1" />
+        )}
         <span className="truncate">{conversation.title}</span>
       </SidebarMenuButton>
 
@@ -192,12 +220,12 @@ function ChatItem({
             />
           }
         >
-          <MoreHorizontalIcon />
+          <MoreHorizontalIcon className="size-3.5" />
           <span className="sr-only">Chat actions</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="start">
           <DropdownMenuItem onClick={handleRename}>
-            <PencilIcon />
+            <PencilIcon className="size-3.5 mr-2" />
             Rename
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -208,7 +236,11 @@ function ChatItem({
               })
             }
           >
-            {conversation.isPinned ? <PinOffIcon /> : <PinIcon />}
+            {conversation.isPinned ? (
+              <PinOffIcon className="size-3.5 mr-2" />
+            ) : (
+              <PinIcon className="size-3.5 mr-2" />
+            )}
             {conversation.isPinned ? "Unpin" : "Pin"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -216,7 +248,7 @@ function ChatItem({
             variant="destructive"
             onClick={() => deleteConversation.mutate(conversation.id)}
           >
-            <Trash2Icon />
+            <Trash2Icon className="size-3.5 mr-2" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -232,18 +264,20 @@ function SidebarFooterMenu() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start"
+        <SidebarMenuButton
+          tooltip={resolvedTheme === "dark" ? "Light theme" : "Dark theme"}
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
         >
-          Toggle theme
-        </Button>
+          {resolvedTheme === "dark" ? (
+            <Sun className="size-4 shrink-0" />
+          ) : (
+            <Moon className="size-4 shrink-0" />
+          )}
+          <span>{resolvedTheme === "dark" ? "Light theme" : "Dark theme"}</span>
+        </SidebarMenuButton>
       </SidebarMenuItem>
       <SidebarMenuItem>
-        <div className="flex items-center gap-2 px-1 py-1.5 overflow-hidden">
+        <div className="flex items-center gap-2 px-1 py-1 overflow-hidden group-data-[collapsible=icon]:justify-center">
           <CustomUserButton />
         </div>
       </SidebarMenuItem>

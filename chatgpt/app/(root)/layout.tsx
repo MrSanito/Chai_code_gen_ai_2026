@@ -6,7 +6,11 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
   const { userId } = await auth();
 
   if (userId) {
-    await onBoardCurrentUser();
+    try {
+      await onBoardCurrentUser();
+    } catch (error) {
+      console.error("[layout] onBoardCurrentUser error:", error);
+    }
   }
 
   return <ChatShell>{children}</ChatShell>;

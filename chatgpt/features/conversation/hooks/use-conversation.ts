@@ -15,6 +15,8 @@ export const useConversations = () => {
   return useQuery({
     queryKey: queryKeys.Conversations.all,
     queryFn: () => listConversations(),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 

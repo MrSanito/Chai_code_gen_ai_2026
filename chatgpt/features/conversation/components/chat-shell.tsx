@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { LogIn, UserPlus } from "lucide-react";
 
@@ -14,24 +15,36 @@ import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import CustomUserButton from "@/components/ui/customUserButton";
 import { buttonVariants } from "@/components/ui/button";
+import { useConversations } from "@/features/conversation/hooks/use-conversation";
 import { cn } from "@/lib/utils";
 
 /**
- * App shell with collapsible sidebar, top bar with account/theme controls,
+ * App shell with collapsible sidebar, top bar with active chat title, account/theme controls,
  * and main content area for chat views.
  */
 export function ChatShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { isLoaded, isSignedIn } = useUser();
+  const { data: conversations } = useConversations();
+
+  const activeId = pathname.startsWith("/c/") ? pathname.split("/")[2] : undefined;
+  const activeConversation = conversations?.find((c) => c.id === activeId);
+  const activeTitle = activeId
+    ? activeConversation?.title ?? "Chat"
+    : "ChaiGPT";
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="min-h-svh flex flex-col overflow-hidden">
-        {/* Top bar with sidebar toggle, theme toggle, and custom account menu */}
+        {/* Top bar with sidebar toggle, conversation title, theme toggle, and custom account menu */}
         <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0 max-w-[55vw] sm:max-w-[70vw]">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Separator orientation="vertical" className="mr-2 h-4 shrink-0" />
+            <h1 className="truncate text-sm font-semibold tracking-tight text-foreground/90">
+              {activeTitle}
+            </h1>
           </div>
 
           <div className="flex items-center gap-2">

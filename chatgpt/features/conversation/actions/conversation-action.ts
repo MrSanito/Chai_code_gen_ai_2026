@@ -6,10 +6,45 @@ import { revalidatePath } from "next/cache";
 
 export async function listConversations() {
   const user = await requireUser();
-  return await db.orm.public.Conversation.where({
+  const all = await db.orm.public.Conversation.where({
     userId: user.userId,
     isArchived: false,
-  }).all();
+  })
+    .orderBy((c) => c.lastMessageAt.desc())
+    .all();
+
+  // Deduplicate empty "New Chat" conversations so the user never sees 5-10 duplicate empty chats
+  const result: typeof all = [];
+  let hasKeptEmptyNewChat = false;
+
+  for (const conv of all) {
+    const isDefaultTitle = conv.title.trim().toLowerCase() === "new chat";
+    if (isDefaultTitle && !conv.isPinned) {
+      const messages = await db.orm.public.Message.where({
+        conversationId: conv.id,
+      }).all();
+
+      if (messages.length === 0) {
+        if (!hasKeptEmptyNewChat) {
+          // Keep at most ONE most recent empty New Chat
+          hasKeptEmptyNewChat = true;
+          result.push(conv);
+        } else {
+          // Automatically clean up duplicate abandoned empty New Chats
+          void db.orm.public.Conversation.where({
+            id: conv.id,
+            userId: user.userId,
+          })
+            .delete()
+            .catch(() => {});
+        }
+        continue;
+      }
+    }
+    result.push(conv);
+  }
+
+  return result;
 }
 
 export type ConversationListItem = Awaited<ReturnType<typeof listConversations>>[number];
@@ -21,22 +56,40 @@ export async function getConversation(conversationId: string) {
 }
 
 export async function createConversation (title = `New Chat`) { 
-    const user = await requireUser()
+    const user = await requireUser();
 
-     const conversation = await db.orm.public.Conversation.create({
+    // If creating a default "New Chat", reuse an existing empty unpinned one instead of creating duplicates
+    if (title.trim().toLowerCase() === "new chat") {
+      const existing = await db.orm.public.Conversation.where({
         userId: user.userId,
-        title : title.trim()  || `new chat`
+        isArchived: false,
+        isPinned: false,
+      })
+        .orderBy((c) => c.lastMessageAt.desc())
+        .all();
 
-         
-    })
-
-    if (!conversation){
-      throw new Error("Conversation not created")
+      for (const conv of existing) {
+        if (conv.title.trim().toLowerCase() === "new chat") {
+          const messages = await db.orm.public.Message.where({
+            conversationId: conv.id,
+          }).all();
+          if (messages.length === 0) {
+            return conv;
+          }
+        }
+      }
     }
 
- 
-    return conversation
+    const conversation = await db.orm.public.Conversation.create({
+        userId: user.userId,
+        title: title.trim() || `New Chat`
+    });
 
+    if (!conversation){
+      throw new Error("Conversation not created");
+    }
+
+    return conversation;
 }
 
 export async function updateConversation(

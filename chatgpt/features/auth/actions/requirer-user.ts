@@ -3,11 +3,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/src/prisma/db";
 
+import { redirect } from "next/navigation";
+
 export async function requireUser() {
-  const { userId } = await auth.protect();
+  const { userId } = await auth();
 
   if (!userId) {
-    throw new Error("Unauthenticated");
+    redirect("/login");
   }
 
   const user = await db.orm.public.User.where({

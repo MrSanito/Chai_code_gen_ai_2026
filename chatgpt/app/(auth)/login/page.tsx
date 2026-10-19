@@ -41,170 +41,123 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   const handleGoogleSignIn = async () => {
+    if (!signIn) return
     setCustomError('')
     setLoading(true)
 
-    // 1. Try Clerk Google OAuth via authenticateWithRedirect
-    if (signIn && typeof (signIn as any).authenticateWithRedirect === 'function') {
-      try {
-        await (signIn as any).authenticateWithRedirect({
-          strategy: 'oauth_google',
-          redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/',
-        })
-        return
-      } catch (clerkErr: any) {
-        console.warn('Clerk Google authenticateWithRedirect failed, trying fallback:', clerkErr)
-      }
-    }
-
-    // 2. Try Clerk Google OAuth via sso()
-    if (signIn && typeof signIn.sso === 'function') {
-      try {
-        const { error } = await signIn.sso({
-          strategy: 'oauth_google',
-          redirectUrl: '/sso-callback',
-          redirectCallbackUrl: '/',
-        })
-        if (error) {
-          console.error('[Clerk Google Sign-In Error]:', error)
-        } else {
-          return
-        }
-      } catch (clerkErr: any) {
-        console.warn('Clerk Google OAuth fallback:', clerkErr)
-      }
-    }
-
-    // 2. Fallback to dummy Google API
     try {
-      const res = await fetch('/api/auth/google', { method: 'POST' })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('auth_token', data.token)
-          sessionStorage.setItem('user', JSON.stringify(data.user))
-        }
-        router.push('/')
-      } else {
-        setCustomError(data.error || 'Google authentication failed')
+      const { error } = await signIn.sso({
+        strategy: 'oauth_google',
+        redirectUrl: '/sso-callback',
+        redirectCallbackUrl: '/',
+      })
+      if (error) {
+        setCustomError(error.message || 'Google sign-in failed')
+        setLoading(false)
       }
-    } catch (err) {
-      setCustomError('Failed to sign in with Google')
-    } finally {
+    } catch (err: any) {
+      console.error('[Clerk Google Sign-In Error]:', err)
+      setCustomError(err.message || 'Google authentication failed')
       setLoading(false)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!signIn) return
     setCustomError('')
     setVerifyError('')
+    setLoading(true)
+
     const formData = new FormData(e.currentTarget)
-    const emailAddress = formData.get('email') as string
+    const emailAddress = (formData.get('email') as string)?.trim()
     const password = formData.get('password') as string
 
-    // 1. Try Clerk authentication if signIn helper is available
-    if (signIn && typeof signIn.password === 'function') {
-      try {
-        const { error } = await signIn.password({ emailAddress, password })
-        if (error) {
-          console.error('[Clerk Sign-In Error]:', error)
-          return
-        }
-
-        if (signIn.status === 'complete') {
-          await signIn.finalize({
-            navigate: ({ session, decorateUrl }) => {
-              if (session?.currentTask) { console.log(session?.currentTask); return }
-              const url = decorateUrl('/')
-              if (url.startsWith('http')) { window.location.href = url } else { router.push(url) }
-            },
-          })
-          return
-        } else if (signIn.status === 'needs_client_trust' || signIn.status === 'needs_second_factor') {
-          const emailCodeFactor = signIn.supportedSecondFactors?.find((f) => f.strategy === 'email_code')
-          if (emailCodeFactor) await signIn.mfa?.sendEmailCode?.()
-          return
-        }
-      } catch (clerkErr: any) {
-        console.warn('Clerk password auth bypassed or failed, falling back to dummy API:', clerkErr)
-      }
-    }
-
-    // 2. Fallback to /api/auth/login dummy API
-    setLoading(true)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailAddress, password }),
-      })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('auth_token', data.token)
-          sessionStorage.setItem('user', JSON.stringify(data.user))
-        }
-        router.push('/')
-      } else {
-        setCustomError(data.error || 'Invalid credentials')
+      const { error } = await signIn.password({ emailAddress, password })
+      if (error) {
+        setCustomError(error.message || 'Invalid credentials')
+        setLoading(false)
+        return
       }
+
+      if (signIn.status === 'complete') {
+        await signIn.finalize({
+          navigate: ({ decorateUrl }) => {
+            const url = decorateUrl('/')
+            if (url.startsWith('http')) {
+              window.location.href = url
+            } else {
+              router.push(url)
+            }
+          },
+        })
+        return
+      }
+
+      if (signIn.status === 'needs_client_trust' || signIn.status === 'needs_second_factor') {
+        const emailCodeFactor = signIn.supportedSecondFactors?.find((f) => f.strategy === 'email_code')
+        if (emailCodeFactor) {
+          await signIn.mfa.sendEmailCode()
+        }
+        setLoading(false)
+        return
+      }
+
+      setLoading(false)
     } catch (err: any) {
-      setCustomError('Network error connecting to auth service')
-    } finally {
+      console.error('[Clerk Sign-In Error]:', err)
+      setCustomError(err.message || 'Failed to sign in')
       setLoading(false)
     }
   }
 
   const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!signIn) return
     setVerifyError('')
+    setLoading(true)
+
     const formData = new FormData(e.currentTarget)
-    const code = formData.get('code') as string
+    const code = (formData.get('code') as string)?.trim()
 
-    if (signIn?.mfa?.verifyEmailCode) {
-      try {
-        await signIn.mfa.verifyEmailCode({ code })
-
-        if (signIn.status === 'complete') {
-          await signIn.finalize({
-            navigate: ({ session, decorateUrl }) => {
-              if (session?.currentTask) { console.log(session?.currentTask); return }
-              const url = decorateUrl('/')
-              if (url.startsWith('http')) { window.location.href = url } else { router.push(url) }
-            },
-          })
-          return
-        } else {
-          setVerifyError('Sign-in attempt not complete. Please try again.')
-          return
-        }
-      } catch (err: any) {
-        console.error('Error verifying MFA code:', err)
-        setVerifyError(err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Invalid verification code')
+    try {
+      const { error } = await signIn.mfa.verifyEmailCode({ code })
+      if (error) {
+        setVerifyError(error.message || 'Invalid verification code')
+        setLoading(false)
         return
       }
-    }
 
-    // Fallback to /api/auth/verify dummy API
-    setLoading(true)
-    try {
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        router.push('/')
-      } else {
-        setVerifyError(data.error || 'Invalid verification code')
+      if (signIn.status === 'complete') {
+        await signIn.finalize({
+          navigate: ({ decorateUrl }) => {
+            const url = decorateUrl('/')
+            if (url.startsWith('http')) {
+              window.location.href = url
+            } else {
+              router.push(url)
+            }
+          },
+        })
+        return
       }
-    } catch (err) {
-      setVerifyError('Failed to verify code')
-    } finally {
+
+      setVerifyError('Sign-in attempt not complete. Please try again.')
       setLoading(false)
+    } catch (err: any) {
+      console.error('Error verifying MFA code:', err)
+      setVerifyError(err.message || 'Invalid verification code')
+      setLoading(false)
+    }
+  }
+
+  const handleResendCode = async () => {
+    if (!signIn) return
+    try {
+      await signIn.mfa.sendEmailCode()
+    } catch (err: any) {
+      console.error('Resend error:', err)
     }
   }
 
@@ -241,12 +194,6 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleVerify} className="space-y-4">
-            {errors?.global && errors.global.length > 0 && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>{errors.global.map((e: any) => e.message).join('. ')}</span>
-              </div>
-            )}
             {verifyError && (
               <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -267,10 +214,10 @@ export default function LoginPage() {
             </Button>
 
             <div className="flex items-center justify-between pt-1">
-              <button type="button" onClick={() => signIn?.mfa?.sendEmailCode?.()} className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 cursor-pointer">
+              <button type="button" onClick={handleResendCode} className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 cursor-pointer">
                 <RefreshCw className="h-3 w-3" />Resend code
               </button>
-              <button type="button" onClick={() => signIn?.reset?.()} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+              <button type="button" onClick={() => signIn?.reset()} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                 Start over
               </button>
             </div>
@@ -316,13 +263,6 @@ export default function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errors?.global && errors.global.length > 0 && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">{errors.global.map((err: any, i: number) => <p key={i}>{err.message}</p>)}</div>
-            </div>
-          )}
-
           {customError && (
             <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
               <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -335,13 +275,8 @@ export default function LoginPage() {
             <label className="text-xs font-medium text-muted-foreground" htmlFor="email">Email</label>
             <Input
               id="email" type="email" name="email" placeholder="name@company.com" required
-              className={`h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${errors?.fields?.identifier ? 'border-destructive/60' : ''}`}
+              className="h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors"
             />
-            {errors?.fields?.identifier && (
-              <p className="text-red-400 text-xs flex items-center gap-1.5">
-                <AlertCircle className="h-3 w-3 shrink-0" />{errors.fields.identifier.message}
-              </p>
-            )}
           </div>
 
           {/* Password */}
@@ -353,17 +288,12 @@ export default function LoginPage() {
             <div className="relative">
               <Input
                 id="password" type={showPassword ? 'text' : 'password'} name="password" placeholder="••••••••" required
-                className={`h-10 pr-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${errors?.fields?.password ? 'border-destructive/60' : ''}`}
+                className="h-10 pr-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors"
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors?.fields?.password && (
-              <p className="text-red-400 text-xs flex items-center gap-1.5">
-                <AlertCircle className="h-3 w-3 shrink-0" />{errors.fields.password.message}
-              </p>
-            )}
           </div>
 
           <Button className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg gap-2 disabled:opacity-40 mt-2" type="submit" disabled={fetchStatus === 'fetching' || loading}>

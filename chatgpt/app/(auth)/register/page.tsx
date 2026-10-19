@@ -39,167 +39,126 @@ export default function RegisterPage() {
   const [verifyError, setVerifyError] = useState('')
   const [customError, setCustomError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [dummyNeedsVerify, setDummyNeedsVerify] = useState(false)
 
   const handleGoogleSignUp = async () => {
+    if (!signUp) return
     setCustomError('')
     setLoading(true)
 
-    // 1. Try Clerk Google OAuth via authenticateWithRedirect
-    if (signUp && typeof (signUp as any).authenticateWithRedirect === 'function') {
-      try {
-        await (signUp as any).authenticateWithRedirect({
-          strategy: 'oauth_google',
-          redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/',
-        })
-        return
-      } catch (clerkErr: any) {
-        console.warn('Clerk Google authenticateWithRedirect failed, trying fallback:', clerkErr)
-      }
-    }
-
-    // 2. Try Clerk Google OAuth via sso()
-    if (signUp && typeof signUp.sso === 'function') {
-      try {
-        const { error } = await signUp.sso({
-          strategy: 'oauth_google',
-          redirectUrl: '/sso-callback',
-          redirectCallbackUrl: '/',
-        })
-        if (error) {
-          console.error('[Clerk Google Sign-Up Error]:', error)
-        } else {
-          return
-        }
-      } catch (clerkErr: any) {
-        console.warn('Clerk Google OAuth fallback:', clerkErr)
-      }
-    }
-
-    // 2. Fallback to dummy Google API
     try {
-      const res = await fetch('/api/auth/google', { method: 'POST' })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('auth_token', data.token)
-          sessionStorage.setItem('user', JSON.stringify(data.user))
-        }
-        router.push('/')
-      } else {
-        setCustomError(data.error || 'Google registration failed')
+      const { error } = await signUp.sso({
+        strategy: 'oauth_google',
+        redirectUrl: '/sso-callback',
+        redirectCallbackUrl: '/',
+      })
+      if (error) {
+        setCustomError(error.message || 'Google registration failed')
+        setLoading(false)
       }
-    } catch (err) {
-      setCustomError('Failed to sign up with Google')
-    } finally {
+    } catch (err: any) {
+      console.error('[Clerk Google Sign-Up Error]:', err)
+      setCustomError(err.message || 'Google registration failed')
       setLoading(false)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!signUp) return
     setCustomError('')
     setVerifyError('')
-    const formData = new FormData(e.currentTarget)
-    const emailAddress = formData.get('email') as string
-    const password = formData.get('password') as string
-    const firstName = formData.get('firstName') as string
-    const lastName = formData.get('lastName') as string
-
-    // 1. Try Clerk signup if available
-    if (signUp && typeof signUp.password === 'function') {
-      try {
-        const { error } = await signUp.password({
-          emailAddress,
-          password,
-          firstName,
-          lastName,
-          unsafeMetadata: { role: 'user' },
-        })
-        if (error) {
-          console.error('[Clerk Sign-Up Error]:', error)
-          return
-        }
-        await signUp.verifications?.sendEmailCode?.()
-        return
-      } catch (clerkErr: any) {
-        console.warn('Clerk signup bypassed or failed, falling back to dummy API:', clerkErr)
-      }
-    }
-
-    // 2. Fallback to /api/auth/register dummy API
     setLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+    const emailAddress = (formData.get('email') as string)?.trim()
+    const password = formData.get('password') as string
+    const firstName = (formData.get('firstName') as string)?.trim()
+    const lastName = (formData.get('lastName') as string)?.trim()
+
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailAddress, password, firstName, lastName }),
+      const { error } = await signUp.password({
+        emailAddress,
+        password,
+        firstName,
+        lastName,
       })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('auth_token', data.token)
-          sessionStorage.setItem('user', JSON.stringify(data.user))
-        }
-        router.push('/')
-      } else {
-        setCustomError(data.error || 'Failed to register account')
+
+      if (error) {
+        setCustomError(error.message || 'Failed to create account')
+        setLoading(false)
+        return
       }
+
+      if (signUp.status === 'complete') {
+        await signUp.finalize({
+          navigate: ({ decorateUrl }) => {
+            const url = decorateUrl('/')
+            if (url.startsWith('http')) {
+              window.location.href = url
+            } else {
+              router.push(url)
+            }
+          },
+        })
+        return
+      }
+
+      await signUp.verifications.sendEmailCode()
+      setLoading(false)
     } catch (err: any) {
-      setCustomError('Network error connecting to auth service')
-    } finally {
+      console.error('[Clerk Sign-Up Error]:', err)
+      setCustomError(err.message || 'Failed to create account')
       setLoading(false)
     }
   }
 
   const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!signUp) return
     setVerifyError('')
-    const formData = new FormData(e.currentTarget)
-    const code = formData.get('code') as string
+    setLoading(true)
 
-    if (signUp?.verifications?.verifyEmailCode) {
-      try {
-        await signUp.verifications.verifyEmailCode({ code })
-        if (signUp.status === 'complete') {
-          await signUp.finalize({
-            navigate: ({ session, decorateUrl }) => {
-              if (session?.currentTask) { console.log(session.currentTask); return }
-              const url = decorateUrl('/')
-              if (url.startsWith('http')) { window.location.href = url } else { router.push(url) }
-            },
-          })
-          return
-        } else {
-          setVerifyError('Sign-up attempt not complete. Please try again.')
-          return
-        }
-      } catch (err: any) {
-        console.error('Error verifying email:', err)
-        setVerifyError(err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Invalid verification code')
+    const formData = new FormData(e.currentTarget)
+    const code = (formData.get('code') as string)?.trim()
+
+    try {
+      const { error } = await signUp.verifications.verifyEmailCode({ code })
+
+      if (error) {
+        setVerifyError(error.message || 'Invalid verification code')
+        setLoading(false)
         return
       }
-    }
 
-    // Fallback dummy verification
-    setLoading(true)
-    try {
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        router.push('/')
-      } else {
-        setVerifyError(data.error || 'Invalid code')
+      if (signUp.status === 'complete') {
+        await signUp.finalize({
+          navigate: ({ decorateUrl }) => {
+            const url = decorateUrl('/')
+            if (url.startsWith('http')) {
+              window.location.href = url
+            } else {
+              router.push(url)
+            }
+          },
+        })
+        return
       }
-    } catch (err) {
-      setVerifyError('Failed to verify code')
-    } finally {
+
+      setVerifyError('Sign-up attempt not complete. Please try again.')
       setLoading(false)
+    } catch (err: any) {
+      console.error('Error verifying email:', err)
+      setVerifyError(err.message || 'Invalid verification code')
+      setLoading(false)
+    }
+  }
+
+  const handleResendCode = async () => {
+    if (!signUp) return
+    try {
+      await signUp.verifications.sendEmailCode()
+    } catch (err: any) {
+      console.error('Resend error:', err)
     }
   }
 
@@ -224,10 +183,8 @@ export default function RegisterPage() {
 
   // ── PHASE 2: Email Verification ──
   const isWaitingVerification =
-    dummyNeedsVerify ||
-    (signUp?.status === 'missing_requirements' &&
-      signUp?.unverifiedFields?.includes?.('email_address') &&
-      signUp?.missingFields?.length === 0)
+    signUp?.status === 'missing_requirements' &&
+    signUp?.unverifiedFields?.includes?.('email_address')
 
   if (isWaitingVerification) {
     return (
@@ -244,12 +201,6 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleVerify} className="space-y-4">
-            {errors?.global && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>{errors.global.map((e: any) => e.message).join('. ')}</span>
-              </div>
-            )}
             {verifyError && (
               <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -261,22 +212,22 @@ export default function RegisterPage() {
               <label className="text-xs font-medium text-muted-foreground" htmlFor="code">Verification Code</label>
               <Input
                 id="code" name="code" type="text" placeholder="000000" autoComplete="one-time-code"
-                className={`h-10 border-border bg-card text-foreground text-center tracking-[0.4em] font-mono text-base placeholder:tracking-normal placeholder:text-muted rounded-lg focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${(errors?.fields?.code || verifyError) ? 'border-destructive/60' : ''}`}
+                className={`h-10 border-border bg-card text-foreground text-center tracking-[0.4em] font-mono text-base placeholder:tracking-normal placeholder:text-muted rounded-lg focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${verifyError ? 'border-destructive/60' : ''}`}
               />
-              {errors?.fields?.code && (
-                <p className="text-red-400 text-xs flex items-center gap-1.5">
-                  <AlertCircle className="h-3 w-3 shrink-0" />{errors.fields.code.message}
-                </p>
-              )}
             </div>
 
             <Button className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg gap-2 disabled:opacity-40" type="submit" disabled={fetchStatus === 'fetching' || loading}>
               {fetchStatus === 'fetching' || loading ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Verifying...</> : 'Verify email'}
             </Button>
 
-            <button type="button" onClick={() => signUp?.verifications?.sendEmailCode?.()} className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5 cursor-pointer pt-1">
-              <RefreshCw className="h-3 w-3" />Resend code
-            </button>
+            <div className="flex items-center justify-between pt-1">
+              <button type="button" onClick={handleResendCode} className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 cursor-pointer">
+                <RefreshCw className="h-3 w-3" />Resend code
+              </button>
+              <button type="button" onClick={() => signUp?.reset()} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                Start over
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -317,13 +268,6 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errors?.global && errors.global.length > 0 && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">{errors.global.map((err: any, i: number) => <p key={i}>{err.message}</p>)}</div>
-            </div>
-          )}
-
           {customError && (
             <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-red-400">
               <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -335,38 +279,34 @@ export default function RegisterPage() {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground" htmlFor="firstName">First name</label>
               <Input id="firstName" type="text" name="firstName" placeholder="John" required
-                className={`h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${errors?.fields?.firstName ? 'border-destructive/60' : ''}`}
+                className="h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors"
               />
-              {errors?.fields?.firstName && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle className="h-3 w-3 shrink-0" />{errors.fields.firstName.message}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground" htmlFor="lastName">Last name</label>
               <Input id="lastName" type="text" name="lastName" placeholder="Doe" required
-                className={`h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${errors?.fields?.lastName ? 'border-destructive/60' : ''}`}
+                className="h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors"
               />
-              {errors?.fields?.lastName && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle className="h-3 w-3 shrink-0" />{errors.fields.lastName.message}</p>}
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground" htmlFor="email">Email</label>
             <Input id="email" type="email" name="email" placeholder="name@company.com" required
-              className={`h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${errors?.fields?.emailAddress ? 'border-destructive/60' : ''}`}
+              className="h-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors"
             />
-            {errors?.fields?.emailAddress && <p className="text-red-400 text-xs flex items-center gap-1.5"><AlertCircle className="h-3 w-3 shrink-0" />{errors.fields.emailAddress.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground" htmlFor="password">Password</label>
             <div className="relative">
               <Input id="password" type={showPassword ? 'text' : 'password'} name="password" placeholder="Min. 8 characters" required
-                className={`h-10 pr-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors ${errors?.fields?.password ? 'border-destructive/60' : ''}`}
+                className="h-10 pr-10 border-border bg-card text-foreground rounded-lg text-sm placeholder:text-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary/50 transition-colors"
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors?.fields?.password && <p className="text-red-400 text-xs flex items-center gap-1.5"><AlertCircle className="h-3 w-3 shrink-0" />{errors.fields.password.message}</p>}
           </div>
 
           <Button className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg gap-2 disabled:opacity-40 mt-2" type="submit" disabled={fetchStatus === 'fetching' || loading}>

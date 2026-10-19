@@ -10,6 +10,7 @@ export async function startNewChat() {
   const { userId: clerkId } = await auth();
 
   if (!clerkId) {
+    console.error("[startNewChat] No clerkId from auth() — redirecting to /landing");
     redirect("/landing");
   }
 
@@ -18,10 +19,33 @@ export async function startNewChat() {
   }).first();
 
   if (!user) {
-    user = await onBoardCurrentUser();
+    console.error("[startNewChat] User not in DB, attempting onboard for clerkId:", clerkId);
+    try {
+      user = await onBoardCurrentUser();
+    } catch (err) {
+      console.error("[startNewChat] onBoardCurrentUser threw:", err);
+    }
+  }
+
+  // Fallback: if onBoardCurrentUser returned null (currentUser() was null),
+  // fetch via Clerk Backend API using the clerkId we already have
+  if (!user) {
+    console.error("[startNewChat] onBoardCurrentUser returned null, trying clerkClient fallback for:", clerkId);
+    try {
+      const { clerkClient } = await import("@clerk/nextjs/server");
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(clerkId);
+      if (clerkUser) {
+        const { syncUserFromClerk } = await import("@/lib/user/sync-user");
+        user = await syncUserFromClerk(clerkUser);
+      }
+    } catch (err) {
+      console.error("[startNewChat] clerkClient fallback failed:", err);
+    }
   }
 
   if (!user) {
+    console.error("[startNewChat] All onboard attempts failed for clerkId:", clerkId, "— redirecting to /landing");
     redirect("/landing");
   }
 

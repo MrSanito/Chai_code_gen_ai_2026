@@ -22,8 +22,8 @@ const hand = Kalam({
 
 /* Change these in one place. */
 const APP_NAME = "MSU Sathi"; // placeholder name, rename freely
-const CHAT_HREF = "/chat";
-const PRACTICE_HREF = "/practice";
+const CHAT_HREF = "/";
+const PRACTICE_HREF = "#exam";
 const FEEDBACK_HREF = "mailto:you@example.com"; // replace with your real contact or form
 
 export const metadata: Metadata = {

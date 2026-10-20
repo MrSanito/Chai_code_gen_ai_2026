@@ -82,7 +82,7 @@ export default function Navbar() {
           {/* Desktop Navigation Links */}
           <nav className="hidden items-center gap-1 sm:flex" aria-label="Main navigation">
             <Link
-              href="/#exam"
+              href="/landing#exam"
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-[#4b5679] dark:text-muted-foreground transition-colors hover:bg-[#141c45]/5 hover:text-[#141c45] dark:hover:bg-white/5 dark:hover:text-foreground'
               )}
@@ -92,7 +92,7 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/#beta"
+              href="/landing#beta"
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-[#4b5679] dark:text-muted-foreground transition-colors hover:bg-[#141c45]/5 hover:text-[#141c45] dark:hover:bg-white/5 dark:hover:text-foreground'
               )}
@@ -102,7 +102,7 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/#campus"
+              href="/landing#campus"
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-[#4b5679] dark:text-muted-foreground transition-colors hover:bg-[#141c45]/5 hover:text-[#141c45] dark:hover:bg-white/5 dark:hover:text-foreground'
               )}
@@ -170,7 +170,7 @@ export default function Navbar() {
         <div className="border-t border-[#cdd6ec]/80 dark:border-border/60 bg-[#f4f6fb]/98 dark:bg-[#0b0f19]/98 px-5 py-3 sm:hidden shadow-lg animate-in slide-in-from-top-2 duration-150">
           <nav className="flex flex-col gap-1">
             <Link
-              href="/#exam"
+              href="/landing#exam"
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-[#141c45] dark:text-foreground hover:bg-[#141c45]/5 dark:hover:bg-accent/60 transition-colors"
             >
@@ -178,7 +178,7 @@ export default function Navbar() {
               Exam practice
             </Link>
             <Link
-              href="/#beta"
+              href="/landing#beta"
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-[#141c45] dark:text-foreground hover:bg-[#141c45]/5 dark:hover:bg-accent/60 transition-colors"
             >
@@ -186,7 +186,7 @@ export default function Navbar() {
               About the beta
             </Link>
             <Link
-              href="/#campus"
+              href="/landing#campus"
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-[#141c45] dark:text-foreground hover:bg-[#141c45]/5 dark:hover:bg-accent/60 transition-colors"
             >

@@ -1,32 +1,14 @@
-import React from "react";
 import { connection } from "next/server";
 import { startNewChat } from "@/features/home/action/start-new-chat";
-import { notFound } from "next/navigation";
-import { getConversation } from "@/features/conversation/actions/conversation-action";
 
 export const instant = false;
 
-type conversationPageProps = { 
-    params : Promise<{id : string}>;
-}
-
-export default async function Page( { params} : conversationPageProps) {
-
-  const { id} = await params;
+/**
+ * Root page (`/`).
+ * Finds or creates a "New Chat" conversation and redirects to `/c/:id`.
+ * This page never actually renders — `startNewChat()` always calls `redirect()`.
+ */
+export default async function Page() {
   await connection();
   await startNewChat();
-
-  try {
-    // getConversation(id)
-    
-  } catch (error) {
-    notFound()
-    
-  }
-
-  // const initialMessages = await loadChatMessages(id)
-
-  return (
-    <div>page</div>
-  );
 }
